@@ -19,17 +19,28 @@ public class ContactServiceImplementation implements ContactService {
     @Override
     public ResponseDto getContacts(RequestDto requestDto) {
         List<Contact> contacts = contactRepository.findByEmailOrPhoneNumber(requestDto.getEmail(), requestDto.getPhoneNumber());
+        ResponseDto responseDto = new ResponseDto();
         // there is contact available
         if(contacts.size() != 0 || contacts != null) {
-            return getResponseDtoFromContacts(contacts);
+            responseDto = getResponseDtoFromContacts(contacts);
         }
 
         // no record found
         // add new record to DB
         else if(contacts.size() == 0) {
-            return addContact(requestDto);
+            return addContactPrimary(requestDto);
         }
-        return null;
+
+        // add secondary 
+        // if phone number is primary and if email is not present as primary or secondary and vice versa
+        if(requestDto.getPhoneNumber().equals(responseDto.getPhoneNumbers().get(0)) && !responseDto.getEmails().contains(requestDto.getEmail())
+            || requestDto.getEmail().equals(responseDto.getEmails().get(0)) && !responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber())) {
+
+            addContactSecondary(requestDto, responseDto.getPrimaryContactId());
+            responseDto = getResponseDtoFromContacts(contacts);
+        }
+
+        return responseDto;
     }
     
 
@@ -81,8 +92,8 @@ public class ContactServiceImplementation implements ContactService {
 
 
     @Override
-    public ResponseDto addContact(RequestDto requestDto) {
-        Contact newContact = new Contact(requestDto.getPhoneNumber(), requestDto.getEmail(), null, LinkPrecedence.PRIMARY.getVal())
+    public ResponseDto addContactPrimary(RequestDto requestDto) {
+        Contact newContact = new Contact(requestDto.getPhoneNumber(), requestDto.getEmail(), null, LinkPrecedence.PRIMARY.getVal());
         Contact savedContact = contactRepository.save(newContact);
         ResponseDto responseDto = new ResponseDto();
         responseDto.setPrimaryContactId(savedContact.getId());
@@ -90,5 +101,13 @@ public class ContactServiceImplementation implements ContactService {
         responseDto.getPhoneNumbers().add(savedContact.getPhoneNumber());
         // and an empty array for secondaryContactIds
         return responseDto;
+    }
+
+
+    @Override
+    public void addContactSecondary(RequestDto requestDto, int linkedId) {
+        Contact newContact = new Contact(requestDto.getPhoneNumber(), requestDto.getEmail(), linkedId, LinkPrecedence.SECONDARY.getVal());
+
+        contactRepository.save(newContact);
     }
 }
