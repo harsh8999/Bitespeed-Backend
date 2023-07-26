@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.bitespeed.fluxkart.dto.RequestDto;
 import com.bitespeed.fluxkart.dto.ResponseDto;
@@ -11,6 +12,7 @@ import com.bitespeed.fluxkart.enums.LinkPrecedence;
 import com.bitespeed.fluxkart.models.Contact;
 import com.bitespeed.fluxkart.repository.ContactRepository;
 
+@Service
 public class ContactServiceImplementation implements ContactService {
 
     @Autowired
@@ -19,6 +21,7 @@ public class ContactServiceImplementation implements ContactService {
     @Override
     public ResponseDto getContacts(RequestDto requestDto) {
         List<Contact> contacts = contactRepository.findByEmailOrPhoneNumber(requestDto.getEmail(), requestDto.getPhoneNumber());
+        
         ResponseDto responseDto = new ResponseDto();
         // there is contact available
         if(contacts.size() != 0 || contacts != null) {
@@ -27,16 +30,17 @@ public class ContactServiceImplementation implements ContactService {
 
         // no record found
         // add new record to DB
-        else if(contacts.size() == 0) {
+        if(contacts.size() == 0) {
             return addContactPrimary(requestDto);
         }
 
-        // add secondary 
-        // if phone number is primary and if email is not present as primary or secondary and vice versa
+        // // add secondary 
+        // // if phone number is primary and if email is not present as primary or secondary and vice versa
         if(requestDto.getPhoneNumber().equals(responseDto.getPhoneNumbers().get(0)) && !responseDto.getEmails().contains(requestDto.getEmail())
             || requestDto.getEmail().equals(responseDto.getEmails().get(0)) && !responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber())) {
 
             addContactSecondary(requestDto, responseDto.getPrimaryContactId());
+            contacts = contactRepository.findByEmailOrPhoneNumber(requestDto.getEmail(), requestDto.getPhoneNumber());
             responseDto = getResponseDtoFromContacts(contacts);
         }
 
@@ -94,7 +98,8 @@ public class ContactServiceImplementation implements ContactService {
     @Override
     public ResponseDto addContactPrimary(RequestDto requestDto) {
         Contact newContact = new Contact(requestDto.getPhoneNumber(), requestDto.getEmail(), null, LinkPrecedence.PRIMARY.getVal());
-        Contact savedContact = contactRepository.save(newContact);
+        Contact savedContact = this.contactRepository.save(newContact);
+        System.out.println("Saved Contact" + savedContact);
         ResponseDto responseDto = new ResponseDto();
         responseDto.setPrimaryContactId(savedContact.getId());
         responseDto.getEmails().add(savedContact.getEmail());
