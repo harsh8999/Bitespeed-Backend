@@ -20,6 +20,9 @@ public class ContactController {
 
     @PostMapping("/identify")
     public ResponseEntity<ResponseDtoHelper> getContact(@RequestBody RequestDto requestDto) {
+        if (requestDto == null || (requestDto.getEmail() == null && requestDto.getPhoneNumber() == null)) {
+            return new ResponseEntity<ResponseDtoHelper>(new ResponseDtoHelper(), HttpStatus.BAD_REQUEST);
+        }
         ResponseDto responseDto = contactService.getContacts(requestDto);
         ResponseDtoHelper responseDtoHelper = new ResponseDtoHelper(responseDto);
         return new ResponseEntity<ResponseDtoHelper>(responseDtoHelper, HttpStatus.OK);
