@@ -23,28 +23,123 @@ public class ContactServiceImplementation implements ContactService {
         List<Contact> contacts = contactRepository.findByEmailOrPhoneNumber(requestDto.getEmail(), requestDto.getPhoneNumber());
         
         ResponseDto responseDto = new ResponseDto();
-        // there is contact available
-        if(contacts.size() != 0 || contacts != null) {
-            responseDto = getResponseDtoFromContacts(contacts);
-        }
 
         // no record found
         // add new record to DB
-        if(contacts.size() == 0) {
-            return addContactPrimary(requestDto);
+        // if(contacts.size() == 0 || contacts == null) {
+        if(contacts.isEmpty()) {
+            responseDto = addContactPrimary(requestDto);
+            return responseDto;
         }
 
-        // // add secondary 
-        // // if phone number is primary and if email is not present as primary or secondary and vice versa
-        if(requestDto.getPhoneNumber().equals(responseDto.getPhoneNumbers().get(0)) && !responseDto.getEmails().contains(requestDto.getEmail())
-            || requestDto.getEmail().equals(responseDto.getEmails().get(0)) && !responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber())) {
-
+        // get a ready resonseDto based on contacts
+        responseDto = getResponseDtoFromContacts(contacts);
+        
+        // add secondary 
+        // if phone number is primary and if email is not present as primary or secondary and vice versa
+        // and both the fields should not be null
+        if(needsSecondaryContactToBeAdded(requestDto, responseDto)) {
             addContactSecondary(requestDto, responseDto.getPrimaryContactId());
             contacts = contactRepository.findByEmailOrPhoneNumber(requestDto.getEmail(), requestDto.getPhoneNumber());
             responseDto = getResponseDtoFromContacts(contacts);
+            return responseDto;
         }
 
+        // if contacts are found get the primary contact
+        Contact primaryContact = getPrimaryContact(contacts);
+
+        if(primaryContact != null) {
+            // primary contact found, fetch all contacts associated with it
+            contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
+
+            // Update the requestDto to use the primary contact's email and phone number
+            requestDto.setEmail(primaryContact.getEmail());
+            requestDto.setPhoneNumber(primaryContact.getPhoneNumber());
+        } 
+
+        // if primary contact is not fetched
+        // linked id gives parent ID
+        // case to handle numm value in either email or phoneNumber
+        // if fetched contact is secondary than fetch all the records from primary
+        else {
+            Contact secondaryContact = getSecondaryContact(contacts);
+            Integer primaryContactId = secondaryContact.getLinkedId();
+            // fetch primary contact's email and phoneNumber by its ID
+            primaryContact = contactRepository.findById(primaryContactId).get();
+            // primary contact found, fetch all contacts associated with it
+            contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
+
+            // Update the requestDto to use the primary contact's email and phone number
+            requestDto.setEmail(primaryContact.getEmail());
+            requestDto.setPhoneNumber(primaryContact.getPhoneNumber());
+        }
+
+        // get a ready resonseDto based on contacts
+        responseDto = getResponseDtoFromContacts(contacts);
+
+        /*
+        // there is contact available
+        // if(contacts.size() != 0 || contacts != null) {
+            // linked id gives parent ID
+            // case to handle numm value in either email or phoneNumber
+            // if fetched contact is secondary than fetch all the records from primary
+            if(contacts.get(0).getLinkPrecedence().equals(LinkPrecedence.SECONDARY.getVal())) {
+                // fetch primary contact's email and phoneNumber
+                Contact primaryContact = contactRepository.findById(contacts.get(0).getLinkedId()).get();
+                // now fetch all contacts with linked with primary ID
+                contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
+
+                // also set requestDto so that new secondary record is not added in DB
+                requestDto.setEmail(primaryContact.getEmail());
+                requestDto.setPhoneNumber(primaryContact.getPhoneNumber());
+            }
+
+            // what if It fetches primary than also fetch all the secondary 
+            else if(contacts.get(0).getLinkPrecedence().equals(LinkPrecedence.PRIMARY.getVal())) {
+                Contact primaryContact = contacts.get(0);
+                // now fetch all contacts with linked with primary ID
+                contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
+
+                // also set requestDto so that new secondary record is not added in DB
+                requestDto.setEmail(primaryContact.getEmail());
+                requestDto.setPhoneNumber(primaryContact.getPhoneNumber());
+            }
+            // get a ready resonseDto based on contacts
+            responseDto = getResponseDtoFromContacts(contacts);
+        // }
+         */
+
+        
+        
+        
+
         return responseDto;
+    }
+
+    private boolean needsSecondaryContactToBeAdded(RequestDto requestDto, ResponseDto responseDto) {
+        // return requestDto.getPhoneNumber().equals(responseDto.getPhoneNumbers().get(0)) && !responseDto.getEmails().contains(requestDto.getEmail())
+        //     || requestDto.getEmail().equals(responseDto.getEmails().get(0)) && !responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber())
+
+        return requestDto.getEmail() != null 
+            && requestDto.getPhoneNumber() != null
+            && ((responseDto.getEmails().contains(requestDto.getEmail()) && !responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber()))
+            || (responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber()) && !responseDto.getEmails().contains(requestDto.getEmail())));
+    }
+;
+    // get Primary contact from contacts
+    private Contact getPrimaryContact(List<Contact> contacts) {
+        return contacts.stream()
+                        .filter(contact -> contact.getLinkPrecedence().equals(LinkPrecedence.PRIMARY.getVal()))
+                        .findFirst()
+                        .orElse(null);
+    }
+
+    // get Secondary contact from contacts
+    private Contact getSecondaryContact(List<Contact> contacts) {
+        return contacts.stream()
+                        .filter(contact -> contact.getLinkPrecedence().equals(LinkPrecedence.SECONDARY.getVal()))
+                        .findFirst()
+                        .orElse(null);
     }
     
 

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bitespeed.fluxkart.dto.RequestDto;
 import com.bitespeed.fluxkart.dto.ResponseDto;
+import com.bitespeed.fluxkart.dto.ResponseDtoHelper;
 import com.bitespeed.fluxkart.services.ContactService;
 
 @RestController
@@ -18,10 +19,10 @@ public class ContactController {
     private ContactService contactService;
 
     @PostMapping("/identify")
-    public ResponseEntity<ResponseDto> getContact(@RequestBody RequestDto requestDto) {
+    public ResponseEntity<ResponseDtoHelper> getContact(@RequestBody RequestDto requestDto) {
         ResponseDto responseDto = contactService.getContacts(requestDto);
-
-        return new ResponseEntity<ResponseDto>(responseDto, HttpStatus.OK);
+        ResponseDtoHelper responseDtoHelper = new ResponseDtoHelper(responseDto);
+        return new ResponseEntity<ResponseDtoHelper>(responseDtoHelper, HttpStatus.OK);
         
     }
 }
