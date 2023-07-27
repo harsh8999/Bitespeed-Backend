@@ -28,7 +28,7 @@ public class ContactServiceImplementation implements ContactService {
         // no record found
         // add new record to DB
         // if(contacts.size() == 0 || contacts == null) {
-        if(contacts.isEmpty()) {
+        if(contacts == null || contacts.isEmpty()) {
             responseDto = addContactPrimary(requestDto);
             return responseDto;
         }
@@ -188,7 +188,7 @@ public class ContactServiceImplementation implements ContactService {
     @Override
     public ResponseDto addContactPrimary(RequestDto requestDto) {
         Contact newContact = new Contact(requestDto.getPhoneNumber(), requestDto.getEmail(), null, LinkPrecedence.PRIMARY.getVal());
-        Contact savedContact = this.contactRepository.save(newContact);
+        Contact savedContact = contactRepository.save(newContact);
         System.out.println("Saved Contact" + savedContact);
         ResponseDto responseDto = new ResponseDto();
         responseDto.setPrimaryContactId(savedContact.getId());
