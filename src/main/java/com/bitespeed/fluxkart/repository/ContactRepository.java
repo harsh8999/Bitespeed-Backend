@@ -9,4 +9,6 @@ import com.bitespeed.fluxkart.models.Contact;
 public interface ContactRepository extends JpaRepository<Contact, Integer> {
     // Fetch all row if their email or phone number matches
     List<Contact> findByEmailOrPhoneNumber(String email, String phoneNumber);
+
+    List<Contact> findByLinkedId(Integer linkedId);
 }

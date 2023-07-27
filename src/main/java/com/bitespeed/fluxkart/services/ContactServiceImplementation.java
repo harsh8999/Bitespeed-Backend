@@ -2,6 +2,7 @@ package com.bitespeed.fluxkart.services;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,21 +41,48 @@ public class ContactServiceImplementation implements ContactService {
         // and both the fields should not be null
         if(needsSecondaryContactToBeAdded(requestDto, responseDto)) {
             addContactSecondary(requestDto, responseDto.getPrimaryContactId());
-            contacts = contactRepository.findByEmailOrPhoneNumber(requestDto.getEmail(), requestDto.getPhoneNumber());
+            Contact primaryContact = contactRepository.findById(responseDto.getPrimaryContactId()).get();
+            // this list will not contain primary contact as it will have linkedID = null
+            contacts = contactRepository.findByLinkedId(responseDto.getPrimaryContactId());
+            // so add manually at first position
+            contacts.add(0, primaryContact);
             responseDto = getResponseDtoFromContacts(contacts);
             return responseDto;
         }
 
         // if contacts are found get the primary contact
-        Contact primaryContact = getPrimaryContact(contacts);
+        List<Contact> primaryContacts = getPrimaryContact(contacts);
 
-        if(primaryContact != null) {
-            // primary contact found, fetch all contacts associated with it
-            contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
+        // if primary contents is not empty and there are 2 or mode primary content fetched
+        // than change other primary to secondary
+        if(!primaryContacts.isEmpty() && primaryContacts.size() > 1) {
+            // this will be the main primary contact
+            Contact primaryContact = primaryContacts.remove(0);
+            // all others will be converted to secondary and linkedId of primaryContact will be given to them
+            for(Contact contact : primaryContacts) {
+                Contact fetchedContact = contactRepository.findById(contact.getId()).get();
+                // set to secondary
+                fetchedContact.setLinkPrecedence(LinkPrecedence.SECONDARY.getVal());
+                fetchedContact.setLinkedId(primaryContact.getId());
+                contactRepository.save(fetchedContact);
+            }
+            // now update the contacts so all the updated contacts can be fetched
+            // this list will not contain primary contact as it will have linkedID = null
+            contacts = contactRepository.findByLinkedId(primaryContact.getId());
+            // so add manually at first position
+            contacts.add(0, primaryContact);
+        }
+
+        // if primary contact size is 1 that means there are no need to change 2 primary to 1 primary and others secondary
+        else if(!primaryContacts.isEmpty() && primaryContacts.size() == 1) {
+            // this list will not contain primary contact as it will have linkedID = null
+            contacts = contactRepository.findByLinkedId(primaryContacts.get(0).getId());
+            // so add manually at first position
+            contacts.add(0, primaryContacts.get(0));
 
             // Update the requestDto to use the primary contact's email and phone number
-            requestDto.setEmail(primaryContact.getEmail());
-            requestDto.setPhoneNumber(primaryContact.getPhoneNumber());
+            requestDto.setEmail(primaryContacts.get(0).getEmail());
+            requestDto.setPhoneNumber(primaryContacts.get(0).getPhoneNumber());
         } 
 
         // if primary contact is not fetched
@@ -65,9 +93,12 @@ public class ContactServiceImplementation implements ContactService {
             Contact secondaryContact = getSecondaryContact(contacts);
             Integer primaryContactId = secondaryContact.getLinkedId();
             // fetch primary contact's email and phoneNumber by its ID
-            primaryContact = contactRepository.findById(primaryContactId).get();
-            // primary contact found, fetch all contacts associated with it
-            contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
+            Contact primaryContact = contactRepository.findById(primaryContactId).get();
+
+            // this list will not contain primary contact as it will have linkedID = null
+            contacts = contactRepository.findByLinkedId(primaryContact.getId());
+            // so add manually at first position
+            contacts.add(0, primaryContact);
 
             // Update the requestDto to use the primary contact's email and phone number
             requestDto.setEmail(primaryContact.getEmail());
@@ -77,45 +108,10 @@ public class ContactServiceImplementation implements ContactService {
         // get a ready resonseDto based on contacts
         responseDto = getResponseDtoFromContacts(contacts);
 
-        /*
-        // there is contact available
-        // if(contacts.size() != 0 || contacts != null) {
-            // linked id gives parent ID
-            // case to handle numm value in either email or phoneNumber
-            // if fetched contact is secondary than fetch all the records from primary
-            if(contacts.get(0).getLinkPrecedence().equals(LinkPrecedence.SECONDARY.getVal())) {
-                // fetch primary contact's email and phoneNumber
-                Contact primaryContact = contactRepository.findById(contacts.get(0).getLinkedId()).get();
-                // now fetch all contacts with linked with primary ID
-                contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
-
-                // also set requestDto so that new secondary record is not added in DB
-                requestDto.setEmail(primaryContact.getEmail());
-                requestDto.setPhoneNumber(primaryContact.getPhoneNumber());
-            }
-
-            // what if It fetches primary than also fetch all the secondary 
-            else if(contacts.get(0).getLinkPrecedence().equals(LinkPrecedence.PRIMARY.getVal())) {
-                Contact primaryContact = contacts.get(0);
-                // now fetch all contacts with linked with primary ID
-                contacts = contactRepository.findByEmailOrPhoneNumber(primaryContact.getEmail(), primaryContact.getPhoneNumber());
-
-                // also set requestDto so that new secondary record is not added in DB
-                requestDto.setEmail(primaryContact.getEmail());
-                requestDto.setPhoneNumber(primaryContact.getPhoneNumber());
-            }
-            // get a ready resonseDto based on contacts
-            responseDto = getResponseDtoFromContacts(contacts);
-        // }
-         */
-
-        
-        
-        
-
         return responseDto;
     }
 
+    // get if we need to add secondary content
     private boolean needsSecondaryContactToBeAdded(RequestDto requestDto, ResponseDto responseDto) {
         // return requestDto.getPhoneNumber().equals(responseDto.getPhoneNumbers().get(0)) && !responseDto.getEmails().contains(requestDto.getEmail())
         //     || requestDto.getEmail().equals(responseDto.getEmails().get(0)) && !responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber())
@@ -127,11 +123,10 @@ public class ContactServiceImplementation implements ContactService {
     }
 ;
     // get Primary contact from contacts
-    private Contact getPrimaryContact(List<Contact> contacts) {
+    private List<Contact> getPrimaryContact(List<Contact> contacts) {
         return contacts.stream()
                         .filter(contact -> contact.getLinkPrecedence().equals(LinkPrecedence.PRIMARY.getVal()))
-                        .findFirst()
-                        .orElse(null);
+                        .collect(Collectors.toList());
     }
 
     // get Secondary contact from contacts
