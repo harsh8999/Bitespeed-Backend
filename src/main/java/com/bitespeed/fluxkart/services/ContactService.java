@@ -2,7 +2,6 @@ package com.bitespeed.fluxkart.services;
 
 import com.bitespeed.fluxkart.dto.RequestDto;
 import com.bitespeed.fluxkart.dto.ResponseDto;
-import com.bitespeed.fluxkart.enums.LinkPrecedence;
 
 public interface ContactService {
     // get content response based on request
