@@ -8,8 +8,8 @@ Before running the application, ensure you have the following software installed
 Docker (https://www.docker.com/get-started)
 Docker Compose (https://docs.docker.com/compose/install/)
 
-Getting Started
-Installation
+
+## Installation
 1. Clone this repository to your local machine.
 ```bash
 git clone https://github.com/harsh8999/Bitespeed-Backend.git
