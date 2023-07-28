@@ -9,5 +9,5 @@ public interface ContactService {
 
     // add content
     ResponseDto addContactPrimary(RequestDto requestDto);
-    void addContactSecondary(RequestDto requestDto, int linkedId);
+    ResponseDto addContactSecondary(RequestDto requestDto, ResponseDto responseDto);
 }
