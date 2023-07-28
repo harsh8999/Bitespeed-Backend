@@ -7,7 +7,4 @@ public interface ContactService {
     // get content response based on request
     ResponseDto getContacts(RequestDto requestDto);
 
-    // add content
-    ResponseDto addContactPrimary(RequestDto requestDto);
-    ResponseDto addContactSecondary(RequestDto requestDto, ResponseDto responseDto);
 }

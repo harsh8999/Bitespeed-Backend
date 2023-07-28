@@ -136,7 +136,7 @@ public class ContactServiceImplementation implements ContactService {
             && ((responseDto.getEmails().contains(requestDto.getEmail()) && !responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber()))
             || (responseDto.getPhoneNumbers().contains(requestDto.getPhoneNumber()) && !responseDto.getEmails().contains(requestDto.getEmail())));
     }
-;
+
     // get Primary contact from contacts
     private List<Contact> getPrimaryContact(List<Contact> contacts) {
         return contacts.stream()
@@ -203,7 +203,7 @@ public class ContactServiceImplementation implements ContactService {
     }
 
 
-    @Override
+    
     public ResponseDto addContactPrimary(RequestDto requestDto) {
         Contact newContact = new Contact(requestDto.getPhoneNumber(), requestDto.getEmail(), null, LinkPrecedence.PRIMARY.getVal());
         Contact savedContact = contactRepository.save(newContact);
@@ -216,7 +216,7 @@ public class ContactServiceImplementation implements ContactService {
     }
 
 
-    @Override
+    
     public ResponseDto addContactSecondary(RequestDto requestDto, ResponseDto responseDto) {
         Contact newContact = new Contact(requestDto.getPhoneNumber(), requestDto.getEmail(), responseDto.getPrimaryContactId(), LinkPrecedence.SECONDARY.getVal());
 
