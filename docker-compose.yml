@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  spring-app:
+    image: fluxkart-rest-api-image-harsh
+    build: .
+    ports:
+      - 8080:8080
+    environment:
+      - MYSQL_HOST=mysqldb
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=fluxkart
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+    networks:
+      - fluxkartnetwork
+
+  mysqldb:
+    image: mysql:8.0
+    networks:
+      - fluxkartnetwork
+    environment:
+      - MYSQL_DATABASE=fluxkart
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+    volumes:
+      - dbdata:/var/lib/mysql
+
+volumes:
+  dbdata:
+
+networks:
+  fluxkartnetwork:
