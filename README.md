@@ -15,12 +15,16 @@ Docker Compose (https://docs.docker.com/compose/install/)
 git clone https://github.com/harsh8999/Bitespeed-Backend.git
 ```
 
-2. Build the Docker image for the Spring Boot application
+2. Build the jar file
+```bash
+mvn install
+```
+3. Build the Docker image for the Spring Boot application
 ```bash
 docker-compose build
 ```
 
-3. Start the containers using Docker Compose.
+4. Start the containers using Docker Compose.
 ```bash
 docker-compose up
 ```
